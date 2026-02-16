@@ -164,7 +164,7 @@ async def get_data(
 
     # 4️⃣ Limit rows server-side (avoid pandas overhead)
     if isinstance(data, list):
-    data = data[:50]
+        data = data[:50]
 
     # 🔥 Normalize all rows to same keys
     all_keys = set()
