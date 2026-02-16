@@ -1,11 +1,9 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
 import httpx
 import pandas as pd
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 async def show_table():
@@ -22,15 +20,16 @@ async def show_table():
 <html>
 <head>
     <title>🚀 Interactive Hetzner Table</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
     <style>
-        body {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }}
-        .container {{ background: white; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }}
-        h1 {{ background: linear-gradient(135deg, #4CAF50, #45a049); color: white; padding: 20px; border-radius: 15px; }}
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { background: white; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        h1 { background: linear-gradient(135deg, #4CAF50, #45a049); color: white; padding: 20px; border-radius: 15px 15px 0 0; }
     </style>
 </head>
 <body>
@@ -50,9 +49,8 @@ async def show_table():
                 data: {table_data},
                 pageLength: 25,
                 responsive: true,
-                dom: 'Bfrtip',
-                buttons: ['copy', 'csv', 'excel'],
-                columnDefs: [{{ targets: '_all', className: 'dt-center' }}]
+                dom: '<"top"lf>rt<"bottom"ip><"clear">',
+                language: {{ search: "🔍 Search table..." }}
             }});
         }});
     </script>
@@ -60,4 +58,4 @@ async def show_table():
 </html>
         """
     except Exception as e:
-        return f"<h1 style='color:red;text-align:center;'>❌ Can't reach Hetzner: {str(e)}</h1>"
+        return f"<h1 style='color:red;text-align:center;padding:50px;'>❌ Can't reach Hetzner: {str(e)}</h1>"
