@@ -98,27 +98,36 @@ async function loadData(interval) {
     const res = await fetch(`/data?interval=${interval}`);
     const data = await res.json();
 
-    if (!table) {
-        table = $('#dataTable').DataTable({
-            data: data,
-            pageLength: 25,
-            responsive: true,
-            columns: Object.keys(data[0] || {}).map(key => ({
-                title: key,
-                data: key
-            }))
-        });
-    } else {
-        table.clear();
-        table.rows.add(data);
-        table.draw();
+    if (!data || data.length === 0) return;
+
+    // Collect ALL unique keys across rows
+    const allKeys = [...new Set(
+        data.flatMap(row => Object.keys(row))
+    )];
+
+    const columns = allKeys.map(key => ({
+        title: key,
+        data: key,
+        defaultContent: ""   // prevents unknown parameter errors
+    }));
+
+    if (table) {
+        table.destroy();
+        $('#dataTable').empty();
     }
+
+    table = $('#dataTable').DataTable({
+        data: data,
+        columns: columns,
+        pageLength: 25,
+        responsive: true
+    });
 }
 
 // Initial load
 loadData("Last");
 
-// Dropdown change (no reload)
+// Dropdown change
 document.getElementById("intervalSelect")
     .addEventListener("change", function() {
         loadData(this.value);
@@ -155,7 +164,16 @@ async def get_data(
 
     # 4️⃣ Limit rows server-side (avoid pandas overhead)
     if isinstance(data, list):
-        data = data[:50]
+    data = data[:50]
+
+    # 🔥 Normalize all rows to same keys
+    all_keys = set()
+    for row in data:
+        all_keys.update(row.keys())
+
+    for row in data:
+        for key in all_keys:
+            row.setdefault(key, None)
 
     # 5️⃣ Store in cache
     await set_cache(interval, data)
