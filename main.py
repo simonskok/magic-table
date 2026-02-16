@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.responses import HTMLResponse
+from typing import Literal
 import httpx
 import pandas as pd
 import json
@@ -7,17 +8,19 @@ import json
 app = FastAPI()
 
 @app.get("/", response_class=HTMLResponse)
-async def show_table():
+async def show_table(
+    interval: Literal["Last","1M","5M","15M","30M","60M"] = Query("Last")
+):
     try:
+        url = f"http://91.99.137.123:3456/OHLCV_Statistics?Asset_Class=Futures&Interval={interval}"
+
         async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.get("http://91.99.137.123:3456/Calendars")
+            resp = await client.get(url)
             resp.raise_for_status()
             data = resp.json()
 
         df = pd.DataFrame(data)
         table_data = df.head(50).to_dict("records")
-
-        # safer JSON injection
         table_json = json.dumps(table_data)
 
         return f"""
@@ -40,11 +43,26 @@ async def show_table():
 <body>
     <div class="container my-5 p-5 mx-auto" style="max-width: 1400px;">
         <h1 class="text-center mb-4">🚀 Hetzner Calendars Data</h1>
+
+        <!-- Interval Dropdown -->
+        <form method="get" class="mb-4">
+            <label class="form-label">Select Interval</label>
+            <select name="interval" class="form-select" onchange="this.form.submit()">
+                <option value="Last" {"selected" if interval=="Last" else ""}>Last</option>
+                <option value="1M"   {"selected" if interval=="1M"   else ""}>1M</option>
+                <option value="5M"   {"selected" if interval=="5M"   else ""}>5M</option>
+                <option value="15M"  {"selected" if interval=="15M"  else ""}>15M</option>
+                <option value="30M"  {"selected" if interval=="30M"  else ""}>30M</option>
+                <option value="60M"  {"selected" if interval=="60M"  else ""}>60M</option>
+            </select>
+        </form>
+
         <div class="table-responsive">
             <table id="dataTable" class="table table-striped table-hover" style="width:100%"></table>
         </div>
+
         <p class="text-center text-muted mt-4">
-            Live data from 91.99.137.123:3456 | {len(table_data)} rows
+            Interval: {interval} | {len(table_data)} rows
         </p>
     </div>
 
@@ -65,4 +83,4 @@ async def show_table():
         """
 
     except Exception as e:
-        return f"<h1 style='color:red;text-align:center;padding:50px;'>❌ Can't reach Hetzner: {str(e)}</h1>"
+        return f"<h1 style='color:red;text-align:center;padding:50px;'>❌ Can't reach API: {str(e)}</h1>"
